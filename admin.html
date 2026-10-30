@@ -4,11 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#EAF3FF">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://drive.google.com https://*.googleusercontent.com; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; manifest-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://drive.google.com https://*.googleusercontent.com; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>EV Billing · Admin</title>
 <link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EV Billing">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -42,6 +46,8 @@
   .btn:active { transform: scale(.97); }
   .btn:disabled { opacity: .5; }
   .btn svg { width: 18px; height: 18px; }
+  a.btn { text-decoration: none; color: var(--ink); }
+  @media (max-width: 560px) { #lnkApp .lbl { display: none; } #lnkApp { padding: 0 12px; } }
   .btn-dark { background: var(--ink); border-color: var(--ink); color: #fff; }
   .btn.spin svg { animation: spin .9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -131,6 +137,7 @@
   <header>
     <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 5 13.2h5.6L9.4 22 18 10.6h-5.7L13.5 2Z"/></svg></div>
     <div class="hd"><h1 id="title">Admin portal</h1><p id="sub">Every sale with its meter photo</p></div>
+    <a class="btn" href="./" id="lnkApp" title="Back to billing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span class="lbl">Billing</span></a>
     <div class="hbtns hidden" id="hbtns">
       <button class="btn" id="btnRefresh" type="button" title="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4.5h-4.5"/></svg><span class="lbl">Refresh</span></button>
       <button class="btn" id="btnCsv" type="button" title="Download CSV"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg><span class="lbl">Export</span></button>
@@ -141,8 +148,7 @@
   <!-- Login -->
   <section class="card login" id="loginCard">
     <h2>Owner login</h2>
-    <p>See every sale with its meter photo. Only the owner PIN opens this page.</p>
-    <div id="keyBox"><label for="keyIn">Station key</label><input class="field" id="keyIn" type="password" autocomplete="off" spellcheck="false" placeholder="Station key"></div>
+    <p>Enter your owner PIN to see every sale with its meter photo.</p>
     <label for="pinIn">Owner PIN</label>
     <input class="field" id="pinIn" type="password" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="Owner PIN">
     <div class="msg hidden" id="loginMsg" role="alert"></div>
@@ -188,8 +194,7 @@
 <script>
 'use strict';
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0GhGBmQa-mJVaNK4xpN_OYiP8UCpaQf-FEpG84TiOdHbYDQsTy-418WWxJ5KzUxMW/exec';
-// Neither the station key nor the owner PIN is stored in this page. The key is shared with the billing app on this phone;
-// the PIN is only kept until this browser tab is closed.
+// The owner PIN is not stored in this page; it is only kept until this browser tab is closed.
 
 const $ = (id) => document.getElementById(id);
 const store = { get(k, d) { try { const v = localStorage.getItem('ev_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('ev_' + k, JSON.stringify(v)); } catch (e) {} } };
@@ -209,7 +214,7 @@ const PAGE = 60;
 async function api(body) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 45000);
   try {
-    const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ ...body, key: store.get('key', ''), pin: sess.get('pin') }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: ctl.signal, redirect: 'follow' });
+    const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ ...body, pin: sess.get('pin') }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: ctl.signal, redirect: 'follow' });
     return await res.json();
   } catch (e) { e.network = true; throw e; } finally { clearTimeout(t); }
 }
@@ -223,20 +228,17 @@ function showHead() {
 /* ---------- login ---------- */
 function showLogin(err) {
   $('portal').classList.add('hidden'); $('hbtns').classList.add('hidden'); $('loginCard').classList.remove('hidden');
-  $('keyBox').classList.toggle('hidden', !!store.get('key', ''));
   const m = $('loginMsg'); m.textContent = err || ''; m.classList.toggle('hidden', !err);
-  ($('keyBox').classList.contains('hidden') ? $('pinIn') : $('keyIn')).focus();
+  $('pinIn').focus();
 }
 async function login() {
-  const k = $('keyIn').value.trim(), p = $('pinIn').value.trim();
-  if (!store.get('key', '') && k.length < 8) return showLogin('Enter the station key.');
-  if (p.length < 4) return showLogin('Enter the owner PIN.');
-  if (k) store.set('key', k);
+  const p = $('pinIn').value.trim();
+  if (p.length < 6) return showLogin('Enter your full owner PIN.');
   sess.set('pin', p);
   const btn = $('btnLogin'); btn.disabled = true; btn.textContent = 'Opening…';
   const ok = await load();
   btn.disabled = false; btn.textContent = 'Open admin portal';
-  if (ok) { $('pinIn').value = ''; $('keyIn').value = ''; }
+  if (ok) $('pinIn').value = '';
 }
 $('btnLogin').addEventListener('click', login);
 $('pinIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
@@ -275,7 +277,6 @@ async function load() {
   try {
     const r = await api({ action: 'admin', from: b[0], to: b[1] });
     if (!r.ok) {
-      if (r.error === 'Not allowed') { store.set('key', ''); sess.set('pin', ''); showLogin('That station key is not correct.'); return false; }
       if (/PIN/.test(r.error || '')) { sess.set('pin', ''); showLogin(r.error); return false; }
       throw new Error(r.error || 'The Sheet refused.');
     }
@@ -366,7 +367,7 @@ $('btnCsv').addEventListener('click', () => {
 });
 
 showHead();
-if (store.get('key', '') && sess.get('pin')) load(); else showLogin();
+if (sess.get('pin')) load(); else showLogin();
 </script>
 </body>
 </html>
