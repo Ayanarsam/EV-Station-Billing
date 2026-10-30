@@ -4,9 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#EAF3FF">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; manifest-src 'self'; worker-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <title>EV Station Billing</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EV Billing">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -107,6 +114,13 @@
   .icon-btn { width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--line); background: #fff; display: grid; place-items: center; color: var(--ink); }
   .icon-btn svg { width: 20px; height: 20px; }
   .price-btn { margin-left: 2px; flex: none; }
+  .install { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 14px; margin-bottom: 14px; }
+  .install img { border-radius: 12px; flex: none; }
+  .ins-txt { flex: 1; min-width: 0; }
+  .ins-txt b { display: block; font-size: 15px; font-weight: 800; }
+  .ins-txt span { display: block; font-size: 12.5px; color: var(--soft); font-weight: 600; margin-top: 2px; line-height: 1.35; }
+  .install .btn { height: 44px; padding: 0 16px; border-radius: 14px; font-size: 14px; flex: none; }
+  .ins-x { border: 0; background: none; color: var(--soft); font-size: 22px; line-height: 1; padding: 4px 2px; flex: none; }
   #rateLine { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255,255,255,.5); text-underline-offset: 3px; }
   .icon-btn.spin svg { animation: spin .9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -167,6 +181,14 @@
     <span class="net" id="net">Online</span>
     <button class="icon-btn price-btn" id="btnPrice" type="button" aria-label="Change price" title="Change price"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.6 7.6a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.6-7.6a1 1 0 0 1-.3-.7Z"/><circle cx="8.3" cy="8.3" r="1.6"/></svg></button>
   </header>
+
+  <!-- Add to home screen -->
+  <section class="card install hidden" id="installCard">
+    <img src="icon-192.png" alt="" width="48" height="48">
+    <div class="ins-txt"><b>Add to home screen</b><span id="installHint">Open EV Billing like an app, with its own icon.</span></div>
+    <button class="btn btn-soft" id="btnInstall" type="button">Install</button>
+    <button class="ins-x" id="btnInstallX" type="button" aria-label="Hide">×</button>
+  </section>
 
   <!-- First-time connection to the Google Sheet -->
   <section class="card setup hidden" id="setupCard">
@@ -527,6 +549,26 @@ $('btnSetRate').addEventListener('click', async () => {
 // pick up a new price made on another phone
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && connected()) loadConfig(); });
 setInterval(() => { if (connected()) loadConfig(); }, 5 * 60e3);
+
+/* ---------- install as an app ---------- */
+let installEvt = null;
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function showInstall(hint) {
+  if (isStandalone() || store.get('installHidden', false)) return;
+  if (hint) $('installHint').textContent = hint;
+  $('installCard').classList.remove('hidden');
+}
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; showInstall(); });
+window.addEventListener('appinstalled', () => { $('installCard').classList.add('hidden'); toast('EV Billing added to your home screen'); });
+if (isIOS && !isStandalone()) showInstall('In Safari: tap the Share button, then "Add to Home Screen".');
+$('btnInstall').addEventListener('click', async () => {
+  if (installEvt) { installEvt.prompt(); const r = await installEvt.userChoice.catch(() => null); installEvt = null; if (r && r.outcome === 'accepted') $('installCard').classList.add('hidden'); }
+  else if (isIOS) toast('Tap Share (square with arrow), then "Add to Home Screen"');
+  else toast('Open the browser menu (⋮) and tap "Add to Home screen" or "Install app"');
+});
+$('btnInstallX').addEventListener('click', () => { store.set('installHidden', true); $('installCard').classList.add('hidden'); });
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
 /* ---------- first-time connect ---------- */
 function checkSetup() { $('setupCard').classList.toggle('hidden', connected()); }

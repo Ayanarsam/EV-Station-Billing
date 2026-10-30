@@ -1,0 +1,16 @@
+{
+  "name": "EV Station Billing",
+  "short_name": "EV Billing",
+  "description": "Charging bills with car number and meter photo, saved to Google Sheets",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EEF5FF",
+  "theme_color": "#EAF3FF",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
