@@ -121,6 +121,13 @@
   .lb-img { overflow: hidden; }
   .lb-img img { max-width: 100%; max-height: 100%; min-width: 0; object-fit: contain; border-radius: 12px; }
 
+  .veil { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: 16px; background: rgba(14,26,47,.35); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .pcard { width: min(380px, 100%); background: #fff; border-radius: 26px; padding: 22px 20px 18px; box-shadow: 0 30px 70px -24px rgba(14,26,47,.6); }
+  .pcard h3 { margin: 0; font-size: 20px; font-weight: 800; }
+  .pcard p { margin: 4px 0 6px; font-size: 13.5px; color: var(--soft); font-weight: 600; }
+  .pcard label { display: block; font-size: 13px; font-weight: 700; color: var(--ink-2); margin: 14px 0 7px; }
+  .pbtns { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin-top: 18px; }
+  .pbtns .btn { height: 50px; }
   @media (max-width: 900px) { .stats { grid-template-columns: 1fr 1fr; } .stat.main { grid-column: 1 / -1; } }
   @media (max-width: 560px) {
     .hbtns .lbl { display: none; } .hbtns .btn { padding: 0 12px; }
@@ -140,6 +147,7 @@
     <a class="btn" href="./" id="lnkApp" title="Back to billing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span class="lbl">Billing</span></a>
     <div class="hbtns hidden" id="hbtns">
       <button class="btn" id="btnRefresh" type="button" title="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4.5h-4.5"/></svg><span class="lbl">Refresh</span></button>
+      <button class="btn" id="btnPrice" type="button" title="Change price"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.6 7.6a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.6-7.6a1 1 0 0 1-.3-.7Z"/><circle cx="8.3" cy="8.3" r="1.6"/></svg><span class="lbl">Price</span></button>
       <button class="btn" id="btnCsv" type="button" title="Download CSV"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg><span class="lbl">Export</span></button>
       <button class="btn" id="btnLock" type="button" title="Lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span class="lbl">Lock</span></button>
     </div>
@@ -186,6 +194,17 @@
   </main>
 </div>
 
+<div class="veil hidden" id="priceVeil" role="dialog" aria-modal="true" aria-labelledby="pTitle">
+  <div class="pcard">
+    <h3 id="pTitle">Change price</h3><p id="pNow"></p>
+    <label for="newRate">New price per unit (Rs per kWh)</label>
+    <input class="field" id="newRate" inputmode="decimal" autocomplete="off">
+    <label for="pricePin">Price PIN</label>
+    <input class="field" id="pricePin" type="password" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="PIN for changing the price">
+    <div class="msg hidden" id="priceMsg" role="alert"></div>
+    <div class="pbtns"><button class="btn" id="btnPriceCancel" type="button">Cancel</button><button class="btn btn-dark" id="btnSetRate" type="button">Save new price</button></div>
+  </div>
+</div>
 <div class="lb hidden" id="lb" role="dialog" aria-modal="true" aria-label="Meter photo">
   <div class="lb-top"><b id="lbTitle"></b><a id="lbOpen" href="#" target="_blank" rel="noopener">Open in Drive</a><button id="lbClose" type="button">Close</button></div>
   <div class="lb-img"><img id="lbImg" alt="Meter photo"></div>
@@ -214,7 +233,7 @@ const PAGE = 60;
 async function api(body) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 45000);
   try {
-    const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ ...body, pin: sess.get('pin') }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: ctl.signal, redirect: 'follow' });
+    const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ pin: sess.get('pin'), ...body }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: ctl.signal, redirect: 'follow' });
     return await res.json();
   } catch (e) { e.network = true; throw e; } finally { clearTimeout(t); }
 }
@@ -353,6 +372,30 @@ const closePhoto = () => { $('lb').classList.add('hidden'); $('lbImg').removeAtt
 $('lbClose').addEventListener('click', closePhoto);
 $('lb').addEventListener('click', (e) => { if (e.target === $('lb') || e.target.classList.contains('lb-img')) closePhoto(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('lb').classList.contains('hidden')) closePhoto(); });
+
+/* ---------- change the price (needs the price PIN; the owner PIN of this login is sent along) ---------- */
+$('btnPrice').addEventListener('click', () => {
+  $('pNow').textContent = config.rate ? `Current price: ${price(config.rate)} per kWh` : 'No price set yet';
+  $('newRate').value = config.rate || ''; $('pricePin').value = ''; $('priceMsg').classList.add('hidden');
+  $('priceVeil').classList.remove('hidden'); $('newRate').focus(); $('newRate').select();
+});
+$('btnPriceCancel').addEventListener('click', () => $('priceVeil').classList.add('hidden'));
+$('newRate').addEventListener('input', (e) => { let v = e.target.value.replace(',', '.').replace(/[^0-9.]/g, ''); const i = v.indexOf('.'); if (i !== -1) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, 2); if (v !== e.target.value) e.target.value = v; });
+$('btnSetRate').addEventListener('click', async () => {
+  const rate = parseFloat($('newRate').value), pp = $('pricePin').value.trim(), m = $('priceMsg');
+  const fail = (t) => { m.textContent = t; m.classList.remove('hidden'); };
+  if (!(rate > 0 && rate <= 1000)) return fail('Enter a price between 1 and 1000.');
+  if (pp.length < 3) return fail('Enter the price PIN.');
+  const btn = $('btnSetRate'); btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const r = await api({ action: 'setRate', rate, pin: pp, ownerPin: sess.get('pin') });
+    if (!r.ok) return fail(r.error || 'The Sheet refused the change.');
+    config = r.config; store.set('config', config); showHead();
+    $('priceVeil').classList.add('hidden');
+    const t = $('sub'); t.textContent = `Price changed to ${price(config.rate)} per kWh`; setTimeout(showHead, 4000);
+  } catch (e) { fail('No internet. Try again when online.'); }
+  finally { btn.disabled = false; btn.textContent = 'Save new price'; }
+});
 
 /* ---------- CSV export ---------- */
 $('btnCsv').addEventListener('click', () => {

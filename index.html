@@ -290,8 +290,8 @@
     <div class="r-top"><h3 id="pTitle" style="margin-top:0">Change price</h3><p id="pNow"></p></div>
     <label class="lb" for="newRate">New price per unit (Rs per kWh)</label>
     <div class="unit-wrap"><input class="field big" id="newRate" inputmode="decimal" autocomplete="off"><span>Rs/kWh</span></div>
-    <label class="lb" for="ownerPin">Owner PIN</label>
-    <input class="field" id="ownerPin" type="password" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="Only the owner knows this">
+    <label class="lb" for="ownerPin">Price PIN</label>
+    <input class="field" id="ownerPin" type="password" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="PIN for changing the price">
     <div class="msg err hidden" id="priceMsg" role="alert"></div>
     <div class="r-btns"><button class="btn btn-main" id="btnSetRate" type="button" style="margin-top:0">Save new price</button><button class="btn btn-soft" id="btnPriceCancel" type="button">Cancel</button></div>
   </div>
@@ -540,7 +540,7 @@ $('btnSetRate').addEventListener('click', async () => {
   const rate = parseFloat($('newRate').value), pin = $('ownerPin').value.trim(), m = $('priceMsg');
   const fail = (t) => { m.textContent = t; m.classList.remove('hidden'); };
   if (!(rate > 0 && rate <= 1000)) return fail('Enter a price between 1 and 1000.');
-  if (pin.length < 4) return fail('Enter the owner PIN.');
+  if (pin.length < 3) return fail('Enter the price PIN.');
   const btn = $('btnSetRate'); btn.disabled = true; btn.textContent = 'Saving…';
   try {
     const r = await api('POST', null, { action: 'setRate', rate, pin, staff: $('staff').value.trim() });
