@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EAF3FF">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://drive.google.com https://*.googleusercontent.com; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>EV Billing · Admin</title>
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0E1A2F; --ink-2: #3A4A63; --soft: #6B7A92; --line: #E3EAF4; --tile: #F4F8FD;
+    --blue: #0B6BF2; --blue-d: #0852C2; --blue-s: #E6F0FF; --green: #0FA968; --green-s: #E2F7EE;
+    --amber: #B7791F; --amber-s: #FFF4DC; --red: #E0464B; --red-s: #FDECEC;
+    --card: rgba(255,255,255,.88); --shadow: 0 18px 40px -24px rgba(16,52,110,.45);
+    --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body { font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); min-height: 100dvh;
+    background: radial-gradient(70% 40% at 90% -5%, rgba(15,169,104,.16), transparent 70%), linear-gradient(180deg, #DCEBFF 0%, #EEF5FF 35%, #F7FAFE 100%); background-attachment: fixed; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; touch-action: manipulation; }
+  :focus-visible { outline: 2.5px solid var(--blue); outline-offset: 2px; }
+  .hidden { display: none !important; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: calc(14px + var(--sat)) 16px calc(40px + var(--sab)); }
+
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 4px 2px 16px; }
+  .logo { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; flex: none; color: #fff;
+    background: linear-gradient(150deg, #16C47F, #0B6BF2); box-shadow: 0 10px 22px -10px rgba(11,107,242,.8); }
+  .logo svg { width: 26px; height: 26px; }
+  .hd { min-width: 0; flex: 1; }
+  .hd h1 { margin: 0; font-size: 20px; font-weight: 800; line-height: 1.2; }
+  .hd p { margin: 2px 0 0; font-size: 13px; color: var(--soft); font-weight: 600; }
+  .hbtns { display: flex; gap: 8px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line); background: #fff; font-weight: 700; font-size: 14px; transition: transform .2s; }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .5; }
+  .btn svg { width: 18px; height: 18px; }
+  .btn-dark { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .btn.spin svg { animation: spin .9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .card { background: var(--card); border: 1px solid #fff; border-radius: 26px; padding: 18px; box-shadow: var(--shadow); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+  .card + .card { margin-top: 14px; }
+  .field { width: 100%; height: 50px; padding: 0 16px; border-radius: 15px; border: 1.5px solid var(--line); background: #fff; font-size: 16px; font-weight: 600; outline: 0; }
+  .field:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(11,107,242,.13); }
+  .msg { margin-top: 12px; padding: 12px 14px; border-radius: 14px; font-size: 14px; font-weight: 600; background: var(--red-s); color: var(--red); }
+
+  /* Login */
+  .login { max-width: 420px; margin: 40px auto 0; }
+  .login h2 { margin: 0 0 6px; font-size: 22px; font-weight: 800; }
+  .login p { margin: 0 0 16px; font-size: 14px; color: var(--soft); font-weight: 600; line-height: 1.5; }
+  .login label { display: block; font-size: 13px; font-weight: 700; color: var(--ink-2); margin: 14px 0 7px; }
+  .login .btn-dark { width: 100%; height: 54px; margin-top: 18px; font-size: 16px; border-radius: 16px; }
+
+  /* Filters */
+  .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; font-weight: 700; font-size: 13.5px; }
+  .chip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .custom { display: flex; align-items: center; gap: 6px; }
+  .custom input { height: 40px; padding: 0 10px; border-radius: 12px; border: 1.5px solid var(--line); background: #fff; font-size: 14px; font-weight: 600; }
+  .filters .grow { flex: 1; }
+  .filters .field { height: 42px; font-size: 14.5px; border-radius: 13px; }
+  .q { min-width: 170px; max-width: 240px; text-transform: uppercase; letter-spacing: .04em; font-weight: 800 !important; }
+  select.field { width: auto; padding-right: 30px; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: 1.6fr repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+  .stat { padding: 14px 14px; border-radius: 18px; background: var(--tile); border: 1px solid #fff; min-width: 0; }
+  .stat small { display: block; font-size: 12px; font-weight: 700; color: var(--soft); }
+  .stat b { display: block; margin-top: 4px; font-size: 22px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat.main { background: linear-gradient(135deg, #0B6BF2, #0FA968); color: #fff; }
+  .stat.main small { color: rgba(255,255,255,.85); }
+  .stat.main b { font-size: 28px; }
+
+  /* Sales grid */
+  .rowhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 22px 4px 12px; }
+  .rowhead h2 { margin: 0; font-size: 20px; font-weight: 800; }
+  .rowhead span { font-size: 13px; color: var(--soft); font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .sale { background: #fff; border: 1px solid var(--line); border-radius: 22px; overflow: hidden; box-shadow: 0 12px 26px -22px rgba(16,52,110,.6); display: flex; flex-direction: column; }
+  .ph { position: relative; aspect-ratio: 4 / 3; background: #E9EFF7; border: 0; padding: 0; display: block; width: 100%; overflow: hidden; }
+  .ph img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+  .ph:hover img { transform: scale(1.03); }
+  .ph .noimg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--soft); font-size: 13px; font-weight: 700; }
+  .ph .bill { position: absolute; left: 10px; top: 10px; padding: 5px 10px; border-radius: 999px; background: rgba(14,26,47,.72); color: #fff; font-size: 12px; font-weight: 800; }
+  .ph .zoom { position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.92); color: var(--ink); }
+  .ph .zoom svg { width: 17px; height: 17px; }
+  .sb { padding: 13px 14px 14px; display: grid; gap: 6px; }
+  .l1 { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .plate { padding: 4px 10px; border-radius: 9px; border: 2px solid var(--ink); font-weight: 800; letter-spacing: .06em; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .amt { font-size: 19px; font-weight: 800; white-space: nowrap; }
+  .meta { font-size: 12.5px; color: var(--soft); font-weight: 600; }
+  .l3 { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pay { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 800; background: var(--blue-s); color: var(--blue-d); }
+  .pay.cash { background: var(--green-s); color: var(--green); }
+  .who { font-size: 12.5px; color: var(--ink-2); font-weight: 600; }
+  .note { font-size: 12.5px; color: var(--ink-2); background: var(--tile); border-radius: 10px; padding: 6px 9px; }
+  .empty { padding: 40px 10px; text-align: center; color: var(--soft); font-weight: 600; font-size: 14.5px; grid-column: 1 / -1; }
+  .more { display: block; margin: 18px auto 0; }
+
+  /* Lightbox */
+  .lb { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); background: rgba(8,14,26,.92); }
+  .lb-top { display: flex; align-items: center; gap: 10px; padding: calc(12px + var(--sat)) 14px 12px; color: #fff; }
+  .lb-top b { flex: 1; font-size: 15px; font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-top a, .lb-top button { height: 40px; padding: 0 14px; border-radius: 12px; border: 0; background: rgba(255,255,255,.14); color: #fff; font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; text-decoration: none; }
+  .lb-img { display: grid; place-items: center; padding: 0 12px calc(12px + var(--sab)); min-height: 0; }
+  .lb-img { overflow: hidden; }
+  .lb-img img { max-width: 100%; max-height: 100%; min-width: 0; object-fit: contain; border-radius: 12px; }
+
+  @media (max-width: 900px) { .stats { grid-template-columns: 1fr 1fr; } .stat.main { grid-column: 1 / -1; } }
+  @media (max-width: 560px) {
+    .hbtns .lbl { display: none; } .hbtns .btn { padding: 0 12px; }
+    .filters .grow { display: none; } .q, select.field { flex: 1; max-width: none; min-width: 0; }
+    .grid { grid-template-columns: 1fr 1fr; gap: 10px; } .sb { padding: 10px; } .amt { font-size: 16px; } .plate { font-size: 12.5px; padding: 3px 7px; }
+    .stat b { font-size: 19px; } .stat.main b { font-size: 26px; }
+  }
+  @media (max-width: 560px) { .hd p { display: none; } .hd h1 { font-size: 17px; } header { gap: 10px; } .logo { width: 42px; height: 42px; } }
+  @media (max-width: 480px) { .grid { grid-template-columns: 1fr; gap: 12px; } .sb { padding: 12px 14px 14px; } .amt { font-size: 19px; } .plate { font-size: 14.5px; padding: 4px 10px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 5 13.2h5.6L9.4 22 18 10.6h-5.7L13.5 2Z"/></svg></div>
+    <div class="hd"><h1 id="title">Admin portal</h1><p id="sub">Every sale with its meter photo</p></div>
+    <div class="hbtns hidden" id="hbtns">
+      <button class="btn" id="btnRefresh" type="button" title="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4.5h-4.5"/></svg><span class="lbl">Refresh</span></button>
+      <button class="btn" id="btnCsv" type="button" title="Download CSV"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg><span class="lbl">Export</span></button>
+      <button class="btn" id="btnLock" type="button" title="Lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span class="lbl">Lock</span></button>
+    </div>
+  </header>
+
+  <!-- Login -->
+  <section class="card login" id="loginCard">
+    <h2>Owner login</h2>
+    <p>See every sale with its meter photo. Only the owner PIN opens this page.</p>
+    <div id="keyBox"><label for="keyIn">Station key</label><input class="field" id="keyIn" type="password" autocomplete="off" spellcheck="false" placeholder="Station key"></div>
+    <label for="pinIn">Owner PIN</label>
+    <input class="field" id="pinIn" type="password" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="Owner PIN">
+    <div class="msg hidden" id="loginMsg" role="alert"></div>
+    <button class="btn btn-dark" id="btnLogin" type="button">Open admin portal</button>
+  </section>
+
+  <!-- Portal -->
+  <main id="portal" class="hidden">
+    <section class="card">
+      <div class="filters">
+        <div class="chips" id="chips">
+          <button class="chip on" data-r="today" type="button">Today</button>
+          <button class="chip" data-r="yesterday" type="button">Yesterday</button>
+          <button class="chip" data-r="7" type="button">Last 7 days</button>
+          <button class="chip" data-r="month" type="button">This month</button>
+          <button class="chip" data-r="all" type="button">All</button>
+          <button class="chip" data-r="custom" type="button">Custom</button>
+        </div>
+        <div class="custom hidden" id="customBox"><input type="date" id="dFrom" aria-label="From date"><span>to</span><input type="date" id="dTo" aria-label="To date"></div>
+        <span class="grow"></span>
+        <input class="field q" id="q" maxlength="15" placeholder="Car number" autocomplete="off" aria-label="Filter by car number">
+        <select class="field" id="payF" aria-label="Filter by payment"><option value="">All payments</option><option>Cash</option><option>JazzCash</option><option>EasyPaisa</option><option>Bank</option></select>
+      </div>
+      <div class="stats">
+        <div class="stat main"><small>Total sales</small><b id="sTotal">Rs 0</b></div>
+        <div class="stat"><small>Cars</small><b id="sCars">0</b></div>
+        <div class="stat"><small>Units (kWh)</small><b id="sUnits">0</b></div>
+        <div class="stat"><small>Cash</small><b id="sCash">Rs 0</b></div>
+        <div class="stat"><small>Online</small><b id="sOnline">Rs 0</b></div>
+      </div>
+    </section>
+    <div class="rowhead"><h2>Sales</h2><span id="rangeLbl"></span></div>
+    <div class="grid" id="grid"></div>
+    <button class="btn more hidden" id="btnMore" type="button">Show more</button>
+  </main>
+</div>
+
+<div class="lb hidden" id="lb" role="dialog" aria-modal="true" aria-label="Meter photo">
+  <div class="lb-top"><b id="lbTitle"></b><a id="lbOpen" href="#" target="_blank" rel="noopener">Open in Drive</a><button id="lbClose" type="button">Close</button></div>
+  <div class="lb-img"><img id="lbImg" alt="Meter photo"></div>
+</div>
+
+<script>
+'use strict';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0GhGBmQa-mJVaNK4xpN_OYiP8UCpaQf-FEpG84TiOdHbYDQsTy-418WWxJ5KzUxMW/exec';
+// Neither the station key nor the owner PIN is stored in this page. The key is shared with the billing app on this phone;
+// the PIN is only kept until this browser tab is closed.
+
+const $ = (id) => document.getElementById(id);
+const store = { get(k, d) { try { const v = localStorage.getItem('ev_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('ev_' + k, JSON.stringify(v)); } catch (e) {} } };
+const sess = { get(k) { try { return sessionStorage.getItem('ev_' + k) || ''; } catch (e) { return ''; } }, set(k, v) { try { v ? sessionStorage.setItem('ev_' + k, v) : sessionStorage.removeItem('ev_' + k); } catch (e) {} } };
+const h = (tag, props, ...kids) => { const e = document.createElement(tag); if (props) for (const k in props) { if (k === 'class') e.className = props[k]; else if (k === 'text') e.textContent = props[k]; else e[k] = props[k]; } for (const c of kids) if (c != null) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); return e; };
+let config = store.get('config', { station: 'EV Charging Station', rate: 0, currency: 'Rs' });
+const money = (n) => `${config.currency || 'Rs'} ${Math.round(Number(n) || 0).toLocaleString('en-PK')}`;
+const price = (n) => `${config.currency || 'Rs'} ${(Number(n) || 0).toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
+const fmtU = (n) => (Number(n) || 0).toLocaleString('en-PK', { maximumFractionDigits: 2 });
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const normCar = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9 -]/g, '').slice(0, 15);
+const thumb = (id, w) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
+
+let rows = [], shown = 0, range = 'today';
+const PAGE = 60;
+
+async function api(body) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 45000);
+  try {
+    const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ ...body, key: store.get('key', ''), pin: sess.get('pin') }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: ctl.signal, redirect: 'follow' });
+    return await res.json();
+  } catch (e) { e.network = true; throw e; } finally { clearTimeout(t); }
+}
+
+function showHead() {
+  $('title').textContent = (config.station || 'EV Charging Station') + ' · Admin';
+  document.title = (config.station || 'EV Billing') + ' · Admin';
+  $('sub').textContent = config.rate ? `Every sale with its meter photo · current price ${price(config.rate)} per kWh` : 'Every sale with its meter photo';
+}
+
+/* ---------- login ---------- */
+function showLogin(err) {
+  $('portal').classList.add('hidden'); $('hbtns').classList.add('hidden'); $('loginCard').classList.remove('hidden');
+  $('keyBox').classList.toggle('hidden', !!store.get('key', ''));
+  const m = $('loginMsg'); m.textContent = err || ''; m.classList.toggle('hidden', !err);
+  ($('keyBox').classList.contains('hidden') ? $('pinIn') : $('keyIn')).focus();
+}
+async function login() {
+  const k = $('keyIn').value.trim(), p = $('pinIn').value.trim();
+  if (!store.get('key', '') && k.length < 8) return showLogin('Enter the station key.');
+  if (p.length < 4) return showLogin('Enter the owner PIN.');
+  if (k) store.set('key', k);
+  sess.set('pin', p);
+  const btn = $('btnLogin'); btn.disabled = true; btn.textContent = 'Opening…';
+  const ok = await load();
+  btn.disabled = false; btn.textContent = 'Open admin portal';
+  if (ok) { $('pinIn').value = ''; $('keyIn').value = ''; }
+}
+$('btnLogin').addEventListener('click', login);
+$('pinIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+$('btnLock').addEventListener('click', () => { sess.set('pin', ''); rows = []; $('grid').replaceChildren(); showLogin(); });
+
+/* ---------- date range ---------- */
+function bounds() {
+  const now = new Date(), d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (range === 'today') return [iso(d), iso(d)];
+  if (range === 'yesterday') { d.setDate(d.getDate() - 1); return [iso(d), iso(d)]; }
+  if (range === '7') { const f = new Date(d); f.setDate(f.getDate() - 6); return [iso(f), iso(d)]; }
+  if (range === 'month') return [iso(new Date(d.getFullYear(), d.getMonth(), 1)), iso(d)];
+  if (range === 'custom') { const f = $('dFrom').value || iso(d), t = $('dTo').value || f; return f <= t ? [f, t] : [t, f]; }
+  return ['', ''];
+}
+function rangeText([f, t]) {
+  if (!f) return 'All sales';
+  const nice = (s) => new Date(s + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return f === t ? nice(f) : `${nice(f)} to ${nice(t)}`;
+}
+$('chips').addEventListener('click', (e) => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  range = b.dataset.r; [...$('chips').children].forEach(x => x.classList.toggle('on', x === b));
+  $('customBox').classList.toggle('hidden', range !== 'custom');
+  if (range === 'custom' && !$('dFrom').value) { const t = iso(new Date()); $('dFrom').value = t; $('dTo').value = t; }
+  load();
+});
+$('dFrom').addEventListener('change', load); $('dTo').addEventListener('change', load);
+$('q').addEventListener('input', (e) => { const v = normCar(e.target.value); if (v !== e.target.value) e.target.value = v; render(); });
+$('payF').addEventListener('change', render);
+
+/* ---------- load and show ---------- */
+async function load() {
+  const btn = $('btnRefresh'); btn.classList.add('spin');
+  const b = bounds();
+  try {
+    const r = await api({ action: 'admin', from: b[0], to: b[1] });
+    if (!r.ok) {
+      if (r.error === 'Not allowed') { store.set('key', ''); sess.set('pin', ''); showLogin('That station key is not correct.'); return false; }
+      if (/PIN/.test(r.error || '')) { sess.set('pin', ''); showLogin(r.error); return false; }
+      throw new Error(r.error || 'The Sheet refused.');
+    }
+    if (r.config) { config = r.config; store.set('config', config); }
+    rows = r.rows || [];
+    $('loginCard').classList.add('hidden'); $('portal').classList.remove('hidden'); $('hbtns').classList.remove('hidden');
+    showHead();
+    $('rangeLbl').textContent = rangeText(b) + (r.capped ? ' · showing the latest 2,000' : '');
+    render();
+    return true;
+  } catch (e) {
+    if (!$('portal').classList.contains('hidden')) $('grid').replaceChildren(h('div', { class: 'empty', text: e.network ? 'Could not reach the Sheet. Check the internet and tap Refresh.' : e.message }));
+    else showLogin(e.network ? 'Could not reach the Sheet. Check the internet.' : e.message);
+    return false;
+  } finally { btn.classList.remove('spin'); }
+}
+$('btnRefresh').addEventListener('click', load);
+
+function filtered() {
+  const q = normCar($('q').value).replace(/[^A-Z0-9]/g, ''), pay = $('payF').value;
+  return rows.filter(r => (!q || r.car.replace(/[^A-Z0-9]/g, '').includes(q)) && (!pay || r.payment === pay));
+}
+function render() {
+  const list = filtered();
+  const total = list.reduce((s, x) => s + x.amount, 0), cash = list.filter(x => x.payment === 'Cash').reduce((s, x) => s + x.amount, 0);
+  $('sTotal').textContent = money(total); $('sCars').textContent = list.length.toLocaleString('en-PK');
+  $('sUnits').textContent = fmtU(list.reduce((s, x) => s + x.units, 0)); $('sCash').textContent = money(cash); $('sOnline').textContent = money(total - cash);
+  shown = 0; $('grid').replaceChildren();
+  if (!list.length) { $('grid').appendChild(h('div', { class: 'empty', text: 'No sales for this selection.' })); $('btnMore').classList.add('hidden'); return; }
+  more();
+}
+function more() {
+  const list = filtered(); const frag = document.createDocumentFragment();
+  for (const r of list.slice(shown, shown + PAGE)) frag.appendChild(card(r));
+  shown = Math.min(list.length, shown + PAGE);
+  $('grid').appendChild(frag);
+  $('btnMore').classList.toggle('hidden', shown >= list.length);
+  $('btnMore').textContent = `Show more (${list.length - shown} left)`;
+}
+$('btnMore').addEventListener('click', more);
+
+function card(r) {
+  const ph = h('button', { class: 'ph', type: 'button', title: 'View meter photo' });
+  if (r.photoId) {
+    const img = h('img', { alt: `Meter photo for ${r.car}`, loading: 'lazy', decoding: 'async', src: thumb(r.photoId, 600) });
+    img.addEventListener('error', () => { img.remove(); ph.appendChild(h('span', { class: 'noimg', text: 'Photo: open in Drive' })); });
+    ph.appendChild(img);
+  } else ph.appendChild(h('span', { class: 'noimg', text: 'No photo' }));
+  ph.appendChild(h('span', { class: 'bill', text: r.bill }));
+  if (r.photoId || r.photo) {
+    const z = h('span', { class: 'zoom' }); z.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4M11 8.5v5M8.5 11h5"/></svg>';
+    ph.appendChild(z);
+    ph.addEventListener('click', () => openPhoto(r));
+  }
+  const kids = [
+    h('div', { class: 'l1' }, h('span', { class: 'plate', text: r.car }), h('span', { class: 'amt', text: money(r.amount) })),
+    h('div', { class: 'meta', text: `${r.date}, ${r.time}` }),
+    h('div', { class: 'meta', text: `${fmtU(r.units)} kWh × ${price(r.rate)}` }),
+    h('div', { class: 'l3' }, h('span', { class: 'pay' + (r.payment === 'Cash' ? ' cash' : ''), text: r.payment }), (r.staff || r.phone) ? h('span', { class: 'who', text: [r.staff, r.phone].filter(Boolean).join(' · ') }) : null),
+  ];
+  if (r.note) kids.push(h('div', { class: 'note', text: r.note }));
+  return h('article', { class: 'sale' }, ph, h('div', { class: 'sb' }, ...kids));
+}
+
+/* ---------- photo viewer ---------- */
+function openPhoto(r) {
+  $('lbTitle').textContent = `${r.bill} · ${r.car} · ${fmtU(r.units)} kWh · ${money(r.amount)}`;
+  $('lbOpen').href = r.photo || (r.photoId ? `https://drive.google.com/file/d/${encodeURIComponent(r.photoId)}/view` : '#');
+  $('lbImg').src = r.photoId ? thumb(r.photoId, 1600) : '';
+  $('lbImg').classList.toggle('hidden', !r.photoId);
+  $('lb').classList.remove('hidden'); $('lbClose').focus();
+}
+const closePhoto = () => { $('lb').classList.add('hidden'); $('lbImg').removeAttribute('src'); };
+$('lbClose').addEventListener('click', closePhoto);
+$('lb').addEventListener('click', (e) => { if (e.target === $('lb') || e.target.classList.contains('lb-img')) closePhoto(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('lb').classList.contains('hidden')) closePhoto(); });
+
+/* ---------- CSV export ---------- */
+$('btnCsv').addEventListener('click', () => {
+  const list = filtered(); if (!list.length) return;
+  const esc = (v) => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const head = ['Bill No', 'Date', 'Time', 'Car Number', 'Units (kWh)', 'Rate (Rs/kWh)', 'Amount (Rs)', 'Payment', 'Customer Phone', 'Staff', 'Note', 'Meter Photo'];
+  const lines = [head.join(',')].concat(list.map(r => [r.bill, r.date, r.time, r.car, r.units, r.rate, r.amount, r.payment, r.phone, r.staff, r.note, r.photo].map(esc).join(',')));
+  const [f, t] = bounds();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv' }));
+  a.download = `ev-sales_${f || 'all'}${t && t !== f ? '_to_' + t : ''}.csv`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+});
+
+showHead();
+if (store.get('key', '') && sess.get('pin')) load(); else showLogin();
+</script>
+</body>
+</html>
