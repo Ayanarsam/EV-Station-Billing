@@ -106,6 +106,8 @@
   .rowhead h2 { margin: 0; }
   .icon-btn { width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--line); background: #fff; display: grid; place-items: center; color: var(--ink); }
   .icon-btn svg { width: 20px; height: 20px; }
+  .price-btn { margin-left: 2px; flex: none; }
+  #rateLine { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(255,255,255,.5); text-underline-offset: 3px; }
   .icon-btn.spin svg { animation: spin .9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .list { display: grid; gap: 10px; }
@@ -163,6 +165,7 @@
     <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 5 13.2h5.6L9.4 22 18 10.6h-5.7L13.5 2Z"/></svg></div>
     <div class="hd"><h1 id="station">EV Charging Station</h1><p id="today"></p></div>
     <span class="net" id="net">Online</span>
+    <button class="icon-btn price-btn" id="btnPrice" type="button" aria-label="Change price" title="Change price"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.6 7.6a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.6-7.6a1 1 0 0 1-.3-.7Z"/><circle cx="8.3" cy="8.3" r="1.6"/></svg></button>
   </header>
 
   <!-- First-time connection to the Google Sheet -->
@@ -257,6 +260,17 @@
     <div class="r-btns"><button class="btn btn-wa" id="btnWa" type="button">Send receipt on WhatsApp</button><button class="btn btn-main" id="btnNext" type="button" style="margin-top:0">New bill</button></div>
   </div>
 </div>
+<div class="veil hidden" id="priceVeil" role="dialog" aria-modal="true" aria-labelledby="pTitle">
+  <div class="receipt">
+    <div class="r-top"><h3 id="pTitle" style="margin-top:0">Change price</h3><p id="pNow"></p></div>
+    <label class="lb" for="newRate">New price per unit (Rs per kWh)</label>
+    <div class="unit-wrap"><input class="field big" id="newRate" inputmode="decimal" autocomplete="off"><span>Rs/kWh</span></div>
+    <label class="lb" for="ownerPin">Owner PIN</label>
+    <input class="field" id="ownerPin" type="password" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="Only the owner knows this">
+    <div class="msg err hidden" id="priceMsg" role="alert"></div>
+    <div class="r-btns"><button class="btn btn-main" id="btnSetRate" type="button" style="margin-top:0">Save new price</button><button class="btn btn-soft" id="btnPriceCancel" type="button">Cancel</button></div>
+  </div>
+</div>
 <div class="toast hidden" id="toast" role="status"></div>
 
 <script>
@@ -273,6 +287,7 @@ const store = { get(k, d) { try { const v = localStorage.getItem('ev_' + k); ret
                 set(k, v) { try { localStorage.setItem('ev_' + k, JSON.stringify(v)); } catch (e) {} } };
 const h = (tag, props, ...kids) => { const e = document.createElement(tag); if (props) for (const k in props) { if (k === 'class') e.className = props[k]; else if (k === 'text') e.textContent = props[k]; else e[k] = props[k]; } for (const c of kids) if (c != null) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); return e; };
 const money = (n, cur) => `${cur || config.currency || 'Rs'} ${Math.round(Number(n) || 0).toLocaleString('en-PK')}`;
+const price = (n) => `${config.currency || 'Rs'} ${(Number(n) || 0).toLocaleString('en-PK', { maximumFractionDigits: 2 })}`;
 const fmtUnits = (n) => (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-PK', { maximumFractionDigits: 2 });
 const scriptUrl = () => SCRIPT_URL || store.get('url', '');
 const validUrl = (u) => /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(u);
@@ -284,7 +299,7 @@ function toast(t) { const el = $('toast'); el.textContent = t; el.classList.remo
 function showConfig() {
   $('station').textContent = config.station || 'EV Charging Station';
   document.title = (config.station || 'EV Station') + ' · Billing';
-  $('rateLine').textContent = config.rate ? `Rate: ${money(config.rate)} per kWh` : 'Set the rate in the Sheet (Settings tab)';
+  $('rateLine').textContent = config.rate ? `Rate: ${price(config.rate)} per kWh` : 'Tap here to set the price per kWh';
   updateAmount();
 }
 $('today').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
@@ -405,7 +420,7 @@ function receipt(r, pending) {
   $('rTitle').textContent = pending ? 'Saved on this phone' : 'Bill saved';
   $('rSub').textContent = pending ? 'No internet. It will upload to the Sheet automatically.' : `${r.bill} · ${r.date}, ${r.time}`;
   $('rAmt').textContent = money(r.amount);
-  const lines = [['Car number', r.car], ['Units', fmtUnits(r.units) + ' kWh'], ['Rate', money(r.rate) + ' / kWh'], ['Payment', r.payment]];
+  const lines = [['Car number', r.car], ['Units', fmtUnits(r.units) + ' kWh'], ['Rate', price(r.rate) + ' / kWh'], ['Payment', r.payment]];
   if (r.staff) lines.push(['Staff', r.staff]);
   if (pending) lines.unshift(['Time', `${r.date}, ${r.time}`]);
   $('rLines').replaceChildren(...lines.map(([a, b]) => h('div', null, h('span', { text: a }), h('b', { text: String(b) }))));
@@ -415,7 +430,7 @@ function receipt(r, pending) {
 $('btnWa').addEventListener('click', () => {
   const r = lastRow; if (!r) return;
   const text = `${config.station || 'EV Charging Station'}\nCharging receipt${r.bill && r.bill !== 'Pending' ? ' ' + r.bill : ''}\n` +
-    `Date: ${r.date}, ${r.time}\nCar: ${r.car}\nUnits: ${fmtUnits(r.units)} kWh\nRate: ${money(r.rate)}/kWh\nAmount: ${money(r.amount)}\nPaid by: ${r.payment}\nThank you!`;
+    `Date: ${r.date}, ${r.time}\nCar: ${r.car}\nUnits: ${fmtUnits(r.units)} kWh\nRate: ${price(r.rate)}/kWh\nAmount: ${money(r.amount)}\nPaid by: ${r.payment}\nThank you!`;
   let ph = String(r.phone || '').replace(/[^0-9]/g, '');
   if (/^03\d{9}$/.test(ph)) ph = '92' + ph.slice(1);
   const url = (ph.length >= 11 ? `https://wa.me/${ph}` : 'https://wa.me/') + '?text=' + encodeURIComponent(text);
@@ -483,6 +498,35 @@ document.querySelector('nav').addEventListener('click', (e) => {
   if (b.dataset.tab === 'search') $('q').focus();
   window.scrollTo({ top: 0 });
 });
+
+/* ---------- change the price (owner PIN checked by the Sheet) ---------- */
+function openPrice() {
+  if (!connected()) { checkSetup(); toast('Enter the station key first.'); return; }
+  $('pNow').textContent = config.rate ? `Current price: ${price(config.rate)} per kWh` : 'No price set yet';
+  $('newRate').value = config.rate || ''; $('ownerPin').value = ''; $('priceMsg').classList.add('hidden');
+  $('priceVeil').classList.remove('hidden'); $('newRate').focus(); $('newRate').select();
+}
+$('btnPrice').addEventListener('click', openPrice);
+$('rateLine').addEventListener('click', openPrice);
+$('btnPriceCancel').addEventListener('click', () => $('priceVeil').classList.add('hidden'));
+$('newRate').addEventListener('input', (e) => { let v = e.target.value.replace(',', '.').replace(/[^0-9.]/g, ''); const i = v.indexOf('.'); if (i !== -1) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, 2); if (v !== e.target.value) e.target.value = v; });
+$('btnSetRate').addEventListener('click', async () => {
+  const rate = parseFloat($('newRate').value), pin = $('ownerPin').value.trim(), m = $('priceMsg');
+  const fail = (t) => { m.textContent = t; m.classList.remove('hidden'); };
+  if (!(rate > 0 && rate <= 1000)) return fail('Enter a price between 1 and 1000.');
+  if (pin.length < 4) return fail('Enter the owner PIN.');
+  const btn = $('btnSetRate'); btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const r = await api('POST', null, { action: 'setRate', rate, pin, staff: $('staff').value.trim() });
+    if (!r.ok) return fail(r.error || 'The Sheet refused the change.');
+    config = r.config; store.set('config', config); showConfig();
+    $('priceVeil').classList.add('hidden'); toast(`Price changed to ${price(config.rate)} per kWh`);
+  } catch (e) { fail('No internet. The price can only be changed when online.'); }
+  finally { btn.disabled = false; btn.textContent = 'Save new price'; }
+});
+// pick up a new price made on another phone
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && connected()) loadConfig(); });
+setInterval(() => { if (connected()) loadConfig(); }, 5 * 60e3);
 
 /* ---------- first-time connect ---------- */
 function checkSetup() { $('setupCard').classList.toggle('hidden', connected()); }
