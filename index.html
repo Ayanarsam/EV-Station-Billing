@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EAF3FF">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>EV Station Billing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0E1A2F; --ink-2: #3A4A63; --soft: #6B7A92; --line: #E3EAF4; --tile: #F4F8FD;
+    --blue: #0B6BF2; --blue-d: #0852C2; --blue-s: #E6F0FF; --green: #0FA968; --green-s: #E2F7EE;
+    --amber: #B7791F; --amber-s: #FFF4DC; --red: #E0464B; --red-s: #FDECEC;
+    --card: rgba(255,255,255,.86); --shadow: 0 18px 40px -24px rgba(16,52,110,.45);
+    --sab: env(safe-area-inset-bottom, 0px); --sat: env(safe-area-inset-top, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body { font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); min-height: 100dvh;
+    background: radial-gradient(70% 40% at 90% -5%, rgba(15,169,104,.18), transparent 70%), linear-gradient(180deg, #DCEBFF 0%, #EEF5FF 35%, #F7FAFE 100%); background-attachment: fixed; }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; touch-action: manipulation; }
+  :focus-visible { outline: 2.5px solid var(--blue); outline-offset: 2px; }
+  .hidden { display: none !important; }
+
+  .wrap { max-width: 560px; margin: 0 auto; padding: calc(12px + var(--sat)) 14px calc(96px + var(--sab)); }
+  header { display: flex; align-items: center; gap: 12px; padding: 4px 2px 14px; }
+  .logo { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; flex: none; color: #fff;
+    background: linear-gradient(150deg, #16C47F, #0B6BF2); box-shadow: 0 10px 22px -10px rgba(11,107,242,.8); }
+  .logo svg { width: 26px; height: 26px; }
+  .hd { min-width: 0; flex: 1; }
+  .hd h1 { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hd p { margin: 2px 0 0; font-size: 12.5px; color: var(--soft); font-weight: 600; }
+  .net { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #fff; border: 1px solid var(--line); white-space: nowrap; }
+  .net::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .net.off { color: var(--amber); } .net.off::before { background: var(--amber); }
+
+  .card { background: var(--card); border: 1px solid #fff; border-radius: 26px; padding: 18px; box-shadow: var(--shadow);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+  .card + .card { margin-top: 14px; }
+  h2 { margin: 0 0 12px; font-size: 19px; font-weight: 800; letter-spacing: -.01em; }
+  label.lb { display: block; font-size: 13px; font-weight: 700; color: var(--ink-2); margin: 16px 0 7px; }
+  label.lb small { font-weight: 600; color: var(--soft); }
+
+  /* Number plate style input */
+  .plate { position: relative; display: flex; align-items: stretch; border-radius: 14px; overflow: hidden; background: #fff;
+    box-shadow: 0 0 0 2.5px var(--ink), 0 8px 18px -12px rgba(0,0,0,.5); }
+  .plate .tag { display: grid; place-items: center; width: 44px; flex: none; background: var(--green); color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .04em; writing-mode: vertical-rl; transform: rotate(180deg); }
+  .plate input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; padding: 0 14px; height: 64px; font-size: 28px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; text-align: center; }
+  .plate input::placeholder { color: #B7C2D3; letter-spacing: .04em; font-weight: 700; }
+  .plate:focus-within { box-shadow: 0 0 0 2.5px var(--blue), 0 0 0 7px rgba(11,107,242,.15); }
+
+  /* Meter photo */
+  .shot { position: relative; display: grid; place-items: center; gap: 6px; width: 100%; min-height: 150px; padding: 18px; border-radius: 20px;
+    border: 2px dashed #B9CBE6; background: var(--tile); color: var(--blue-d); font-weight: 800; font-size: 15px; text-align: center; }
+  .shot svg { width: 34px; height: 34px; }
+  .shot small { display: block; font-weight: 600; font-size: 12.5px; color: var(--soft); }
+  .preview { position: relative; border-radius: 20px; overflow: hidden; background: #0E1A2F; }
+  .preview img { display: block; width: 100%; max-height: 300px; object-fit: contain; }
+  .preview .retake { position: absolute; right: 10px; bottom: 10px; border: 0; border-radius: 999px; padding: 9px 14px; background: rgba(255,255,255,.92); font-weight: 800; font-size: 13px; color: var(--ink); box-shadow: 0 6px 14px -6px rgba(0,0,0,.5); }
+  .preview .ok { position: absolute; left: 10px; top: 10px; padding: 6px 10px; border-radius: 999px; background: var(--green); color: #fff; font-size: 12px; font-weight: 800; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field { width: 100%; height: 54px; padding: 0 16px; border-radius: 16px; border: 1.5px solid var(--line); background: #fff; font-size: 17px; font-weight: 600; outline: 0; transition: border-color .2s, box-shadow .2s; }
+  .field:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(11,107,242,.13); }
+  .field.big { font-size: 24px; font-weight: 800; height: 60px; }
+  textarea.field { height: auto; min-height: 54px; padding: 14px 16px; resize: vertical; font-size: 15px; }
+  .unit-wrap { position: relative; }
+  .unit-wrap span { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-weight: 800; color: var(--soft); font-size: 14px; pointer-events: none; }
+
+  .amount { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 18px; border-radius: 20px;
+    background: linear-gradient(135deg, #0B6BF2, #0FA968); color: #fff; box-shadow: 0 16px 30px -18px rgba(11,107,242,.9); }
+  .amount small { display: block; font-size: 12.5px; font-weight: 600; opacity: .85; }
+  .amount b { font-size: 32px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; white-space: nowrap; }
+
+  .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .seg button { height: 48px; border-radius: 14px; border: 1.5px solid var(--line); background: #fff; font-weight: 700; font-size: 13.5px; transition: background .15s, color .15s, border-color .15s; }
+  .seg button.on { background: var(--ink); border-color: var(--ink); color: #fff; box-shadow: 0 8px 16px -10px rgba(14,26,47,.8); }
+
+  .more { margin-top: 14px; border: 0; background: none; color: var(--blue-d); font-weight: 700; font-size: 14px; padding: 6px 0; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 56px; padding: 0 22px; border-radius: 18px; border: 0; font-weight: 800; font-size: 16px; transition: transform .2s, opacity .2s; }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .5; }
+  .btn-main { width: 100%; margin-top: 18px; background: var(--ink); color: #fff; box-shadow: 0 14px 26px -14px rgba(14,26,47,.85); }
+  .btn-soft { background: var(--blue-s); color: var(--blue-d); }
+  .btn-wa { background: #25D366; color: #06381B; }
+  .msg { margin-top: 12px; padding: 12px 14px; border-radius: 14px; font-size: 14px; font-weight: 600; }
+  .msg.err { background: var(--red-s); color: var(--red); }
+  .msg.warn { background: var(--amber-s); color: var(--amber); }
+
+  /* Today */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat { padding: 14px 12px; border-radius: 18px; background: var(--tile); border: 1px solid #fff; }
+  .stat small { display: block; font-size: 12px; font-weight: 700; color: var(--soft); }
+  .stat b { display: block; margin-top: 4px; font-size: 21px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat.wide { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #0B6BF2, #0FA968); color: #fff; }
+  .stat.wide small { color: rgba(255,255,255,.85); }
+  .stat.wide b { font-size: 28px; margin: 0; }
+  .split { display: flex; gap: 8px; margin-top: 10px; }
+  .split span { flex: 1; padding: 9px 10px; border-radius: 12px; background: #fff; border: 1px solid var(--line); font-size: 12.5px; font-weight: 700; color: var(--ink-2); text-align: center; }
+  .rowhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .rowhead h2 { margin: 0; }
+  .icon-btn { width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--line); background: #fff; display: grid; place-items: center; color: var(--ink); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn.spin svg { animation: spin .9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .list { display: grid; gap: 10px; }
+  .item { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 13px 14px; border-radius: 18px; background: #fff; border: 1px solid var(--line); }
+  .item .car { font-weight: 800; font-size: 16px; letter-spacing: .05em; }
+  .item .amt { font-weight: 800; font-size: 16px; text-align: right; }
+  .item .meta { grid-column: 1 / -1; font-size: 12.5px; color: var(--soft); font-weight: 600; }
+  .item > .right { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+  .item .right .right { margin: 0; display: flex; gap: 8px; }
+  .chip { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 800; background: var(--blue-s); color: var(--blue-d); }
+  .chip.cash { background: var(--green-s); color: var(--green); }
+  .chip.wait { background: var(--amber-s); color: var(--amber); }
+  .item a { font-size: 12.5px; font-weight: 800; color: var(--blue-d); text-decoration: none; }
+  .empty { padding: 26px 10px; text-align: center; color: var(--soft); font-weight: 600; font-size: 14px; }
+  .search { display: flex; gap: 10px; }
+  .search .field { flex: 1; text-transform: uppercase; font-weight: 800; letter-spacing: .06em; }
+  .search .btn { height: 54px; }
+
+  /* Bottom tabs */
+  nav { position: fixed; left: 50%; bottom: calc(12px + var(--sab)); transform: translateX(-50%); z-index: 20; display: flex; gap: 6px; padding: 7px; border-radius: 26px;
+    background: rgba(255,255,255,.9); border: 1px solid #fff; box-shadow: 0 18px 40px -16px rgba(16,52,110,.55); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); width: min(380px, calc(100% - 28px)); }
+  nav button { position: relative; flex: 1; height: 54px; border: 0; border-radius: 20px; background: transparent; display: grid; place-items: center; gap: 2px; font-size: 11.5px; font-weight: 700; color: var(--ink-2); padding: 6px 0 4px; }
+  nav button svg { width: 22px; height: 22px; }
+  nav button.on { background: var(--ink); color: #fff; }
+  nav .badge { position: absolute; top: 4px; right: calc(50% - 22px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--amber); color: #fff; font-size: 10.5px; font-weight: 800; line-height: 18px; }
+
+  /* Receipt */
+  .veil { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; background: rgba(14,26,47,.35); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .receipt { width: min(380px, 100%); max-height: calc(100dvh - 32px); overflow: auto; background: #fff; border-radius: 28px; padding: 22px 20px 18px; box-shadow: 0 30px 70px -24px rgba(14,26,47,.6); animation: up .35s cubic-bezier(.2,1.2,.4,1); }
+  @keyframes up { from { transform: translateY(24px) scale(.96); opacity: 0; } }
+  .r-top { text-align: center; }
+  .tick { width: 62px; height: 62px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; background: var(--green); color: #fff; box-shadow: 0 0 0 7px var(--green-s); }
+  .tick.wait { background: var(--amber); box-shadow: 0 0 0 7px var(--amber-s); }
+  .tick svg { width: 32px; height: 32px; }
+  .r-top h3 { margin: 14px 0 2px; font-size: 20px; font-weight: 800; }
+  .r-top p { margin: 0; font-size: 13px; color: var(--soft); font-weight: 600; }
+  .r-amt { margin: 16px 0 6px; text-align: center; font-size: 38px; font-weight: 800; letter-spacing: -.02em; }
+  .r-lines { border-top: 1.5px dashed var(--line); margin-top: 8px; padding-top: 10px; }
+  .r-lines div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14px; }
+  .r-lines span { color: var(--soft); font-weight: 600; }
+  .r-lines b { font-weight: 800; text-align: right; }
+  .r-btns { display: grid; gap: 10px; margin-top: 16px; }
+  .r-btns .btn { width: 100%; }
+
+  /* Setup */
+  .setup p { margin: 0 0 12px; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+  .setup ol { margin: 0 0 14px; padding-left: 20px; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
+  .toast { position: fixed; left: 50%; top: calc(14px + var(--sat)); transform: translateX(-50%); z-index: 50; padding: 11px 16px; border-radius: 14px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 700; box-shadow: 0 14px 30px -14px rgba(0,0,0,.6); }
+  @media (max-width: 380px) { .seg { grid-template-columns: 1fr 1fr; } .plate input { font-size: 24px; } .amount b { font-size: 28px; } .stats { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 5 13.2h5.6L9.4 22 18 10.6h-5.7L13.5 2Z"/></svg></div>
+    <div class="hd"><h1 id="station">EV Charging Station</h1><p id="today"></p></div>
+    <span class="net" id="net">Online</span>
+  </header>
+
+  <!-- First-time connection to the Google Sheet -->
+  <section class="card setup hidden" id="setupCard">
+    <h2>Connect this phone</h2>
+    <p>Enter the station key once. Ask the station owner for it. It stays saved on this phone.</p>
+    <input class="field" id="keyInput" type="password" placeholder="Station key" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="btn btn-main" id="btnSaveUrl" type="button">Connect</button>
+    <div class="msg err hidden" id="setupMsg"></div>
+  </section>
+
+  <!-- New bill -->
+  <main id="tab-new">
+    <section class="card">
+      <label class="lb" for="car" style="margin-top:0">Car number</label>
+      <div class="plate"><span class="tag">PAK</span><input id="car" maxlength="15" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC-1234" enterkeyhint="next"></div>
+
+      <label class="lb">Meter reading photo</label>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+      <button type="button" class="shot" id="btnShot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        <span>Take meter photo<small>Make sure the units (kWh) are clear</small></span>
+      </button>
+      <div class="preview hidden" id="preview"><span class="ok">Photo added</span><img id="previewImg" alt="Meter photo"><button type="button" class="retake" id="btnRetake">Retake</button></div>
+
+      <label class="lb" for="units">Units charged <small>(from the meter)</small></label>
+      <div class="unit-wrap"><input class="field big" id="units" inputmode="decimal" autocomplete="off" placeholder="0.00" enterkeyhint="done"><span>kWh</span></div>
+
+      <div class="amount"><div><small id="rateLine">Rate: loading…</small><small>Amount to pay</small></div><b id="amount">Rs 0</b></div>
+
+      <label class="lb">Payment</label>
+      <div class="seg" id="paySeg">
+        <button type="button" class="on" data-pay="Cash">Cash</button>
+        <button type="button" data-pay="JazzCash">JazzCash</button>
+        <button type="button" data-pay="EasyPaisa">EasyPaisa</button>
+        <button type="button" data-pay="Bank">Bank</button>
+      </div>
+
+      <button type="button" class="more" id="btnMore">+ Customer phone, staff name, note</button>
+      <div id="moreBox" class="hidden">
+        <div class="grid2">
+          <div><label class="lb" for="phone">Customer phone</label><input class="field" id="phone" inputmode="tel" maxlength="15" placeholder="03xx xxxxxxx" autocomplete="off"></div>
+          <div><label class="lb" for="staff">Staff name</label><input class="field" id="staff" maxlength="40" placeholder="Your name" autocomplete="off"></div>
+        </div>
+        <label class="lb" for="note">Note</label>
+        <textarea class="field" id="note" maxlength="200" rows="2" placeholder="Optional"></textarea>
+      </div>
+
+      <div class="msg err hidden" id="formMsg" role="alert"></div>
+      <button type="button" class="btn btn-main" id="btnSave">Save bill</button>
+    </section>
+  </main>
+
+  <!-- Today -->
+  <main id="tab-today" class="hidden">
+    <section class="card">
+      <div class="rowhead"><h2>Today</h2><button class="icon-btn" id="btnRefresh" type="button" aria-label="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4.5h-4.5"/></svg></button></div>
+      <div class="stats">
+        <div class="stat wide"><div><small>Total collected</small><b id="sTotal">Rs 0</b></div></div>
+        <div class="stat"><small>Cars</small><b id="sCars">0</b></div>
+        <div class="stat"><small>Units</small><b id="sUnits">0</b></div>
+        <div class="stat"><small>Avg / car</small><b id="sAvg">Rs 0</b></div>
+      </div>
+      <div class="split"><span id="sCash">Cash: Rs 0</span><span id="sOnline">Online: Rs 0</span></div>
+      <div class="msg warn hidden" id="pendingMsg"></div>
+    </section>
+    <section class="card"><h2>Bills</h2><div class="list" id="todayList"><div class="empty">Loading…</div></div></section>
+  </main>
+
+  <!-- Search -->
+  <main id="tab-search" class="hidden">
+    <section class="card">
+      <h2>Find a car</h2>
+      <div class="search"><input class="field" id="q" maxlength="15" placeholder="Car number" autocomplete="off" autocapitalize="characters" enterkeyhint="search"><button class="btn btn-soft" id="btnSearch" type="button">Search</button></div>
+      <div class="list" id="searchList" style="margin-top:14px"></div>
+    </section>
+  </main>
+</div>
+
+<nav aria-label="Sections">
+  <button type="button" class="on" data-tab="new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New bill</button>
+  <button type="button" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Today<span class="badge hidden" id="pendBadge"></span></button>
+  <button type="button" data-tab="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>Search</button>
+</nav>
+
+<div class="veil hidden" id="veil" role="dialog" aria-modal="true" aria-labelledby="rTitle">
+  <div class="receipt">
+    <div class="r-top"><div class="tick" id="rTick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 12.5 4 4 8-9"/></svg></div>
+      <h3 id="rTitle">Bill saved</h3><p id="rSub"></p></div>
+    <div class="r-amt" id="rAmt"></div>
+    <div class="r-lines" id="rLines"></div>
+    <div class="r-btns"><button class="btn btn-wa" id="btnWa" type="button">Send receipt on WhatsApp</button><button class="btn btn-main" id="btnNext" type="button" style="margin-top:0">New bill</button></div>
+  </div>
+</div>
+<div class="toast hidden" id="toast" role="status"></div>
+
+<script>
+'use strict';
+/* ====== Settings: paste your Google Apps Script Web app URL here (or paste it in the app the first time) ====== */
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0GhGBmQa-mJVaNK4xpN_OYiP8UCpaQf-FEpG84TiOdHbYDQsTy-418WWxJ5KzUxMW/exec';
+// The station key is NOT stored in this page (the page is public). Staff type it once per phone; it must match APP_KEY in Code.gs.
+const appKey = () => store.get('key', '');
+const connected = () => validUrl(scriptUrl()) && !!appKey();
+/* ============================================================================================================== */
+
+const $ = (id) => document.getElementById(id);
+const store = { get(k, d) { try { const v = localStorage.getItem('ev_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+                set(k, v) { try { localStorage.setItem('ev_' + k, JSON.stringify(v)); } catch (e) {} } };
+const h = (tag, props, ...kids) => { const e = document.createElement(tag); if (props) for (const k in props) { if (k === 'class') e.className = props[k]; else if (k === 'text') e.textContent = props[k]; else e[k] = props[k]; } for (const c of kids) if (c != null) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); return e; };
+const money = (n, cur) => `${cur || config.currency || 'Rs'} ${Math.round(Number(n) || 0).toLocaleString('en-PK')}`;
+const fmtUnits = (n) => (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-PK', { maximumFractionDigits: 2 });
+const scriptUrl = () => SCRIPT_URL || store.get('url', '');
+const validUrl = (u) => /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(u);
+const normCar = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9 -]/g, '').replace(/\s+/g, ' ').replace(/-+/g, '-').trimStart().slice(0, 15);
+let config = store.get('config', { station: 'EV Charging Station', rate: 0, currency: 'Rs' });
+let photoData = '', payment = 'Cash', toastTimer;
+
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.remove('hidden'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.add('hidden'), 2600); }
+function showConfig() {
+  $('station').textContent = config.station || 'EV Charging Station';
+  document.title = (config.station || 'EV Station') + ' · Billing';
+  $('rateLine').textContent = config.rate ? `Rate: ${money(config.rate)} per kWh` : 'Set the rate in the Sheet (Settings tab)';
+  updateAmount();
+}
+$('today').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+
+/* ---------- talking to the Google Sheet ---------- */
+async function api(method, params, body) {
+  const url = scriptUrl(); if (!connected()) throw Object.assign(new Error('Not connected'), { setup: true });
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), method === 'POST' ? 45000 : 20000);
+  try {
+    let res;
+    if (method === 'GET') res = await fetch(url + '?' + new URLSearchParams({ ...params, key: appKey() }), { signal: ctl.signal, redirect: 'follow' });
+    else res = await fetch(url, { method: 'POST', body: JSON.stringify({ ...body, key: appKey() }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: ctl.signal, redirect: 'follow' });
+    const data = await res.json();
+    if (data && data.ok === false && data.error === 'Not allowed') { store.set('key', ''); checkSetup(); }
+    return data;   // { ok, ... } - ok:false means the Sheet answered but refused
+  } catch (e) { e.network = true; throw e; }
+  finally { clearTimeout(t); }
+}
+async function loadConfig() {
+  try { const r = await api('GET', { action: 'config' }); if (r.ok && r.config) { config = r.config; store.set('config', config); showConfig(); } } catch (e) {}
+}
+
+/* ---------- offline outbox (IndexedDB), so no bill is lost when the internet drops ---------- */
+const db = new Promise((res, rej) => { const r = indexedDB.open('ev-billing', 1); r.onupgradeneeded = () => r.result.createObjectStore('outbox', { keyPath: 'id' }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+async function ob(mode, fn) { const d = await db; return new Promise((res, rej) => { const tx = d.transaction('outbox', mode); const st = tx.objectStore('outbox'); const r = fn(st); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); }); }
+const obPut = (e) => ob('readwrite', s => s.put(e));
+const obDel = (id) => ob('readwrite', s => s.delete(id));
+const obAll = () => ob('readonly', s => s.getAll());
+let flushing = false;
+async function flush() {
+  if (flushing || !connected()) return; flushing = true;
+  try {
+    const items = (await obAll()) || [];
+    items.sort((a, b) => a.takenAt - b.takenAt);
+    for (const it of items) {
+      try {
+        const r = await api('POST', null, it);
+        if (r.ok) await obDel(it.id);
+        else if (!/Busy/.test(r.error || '')) { await obDel(it.id); toast(`Bill for ${it.car} was refused: ${r.error}`); }
+      } catch (e) { break; }   // still offline: try later
+    }
+  } finally { flushing = false; updatePending(); }
+}
+async function updatePending() {
+  let n = 0; try { n = ((await obAll()) || []).length; } catch (e) {}
+  const b = $('pendBadge'); b.textContent = n || ''; b.classList.toggle('hidden', !n);
+  const m = $('pendingMsg'); m.textContent = n ? `${n} bill${n > 1 ? 's' : ''} saved on this phone, waiting for internet to upload.` : ''; m.classList.toggle('hidden', !n);
+  return n;
+}
+function setNet() { const on = navigator.onLine; const n = $('net'); n.textContent = on ? 'Online' : 'Offline'; n.classList.toggle('off', !on); }
+window.addEventListener('online', () => { setNet(); flush(); });
+window.addEventListener('offline', setNet);
+setInterval(flush, 30000);
+
+/* ---------- form ---------- */
+$('car').addEventListener('input', (e) => { const v = normCar(e.target.value); if (v !== e.target.value) e.target.value = v; });
+$('units').addEventListener('input', (e) => { let v = e.target.value.replace(',', '.').replace(/[^0-9.]/g, ''); const i = v.indexOf('.'); if (i !== -1) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, 2); if (v !== e.target.value) e.target.value = v; updateAmount(); });
+function units() { const n = parseFloat($('units').value); return isFinite(n) ? n : 0; }
+function updateAmount() { $('amount').textContent = money(units() * (config.rate || 0)); }
+$('paySeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; payment = b.dataset.pay; [...$('paySeg').children].forEach(x => x.classList.toggle('on', x === b)); });
+$('btnMore').addEventListener('click', () => { $('moreBox').classList.remove('hidden'); $('btnMore').classList.add('hidden'); });
+$('staff').value = store.get('staff', '');
+if ($('staff').value) { $('moreBox').classList.remove('hidden'); $('btnMore').classList.add('hidden'); }
+$('staff').addEventListener('change', () => store.set('staff', $('staff').value.trim()));
+
+$('btnShot').addEventListener('click', () => $('photoInput').click());
+$('btnRetake').addEventListener('click', () => $('photoInput').click());
+$('photoInput').addEventListener('change', async (e) => {
+  const f = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    photoData = await shrink(f);
+    $('previewImg').src = photoData; $('preview').classList.remove('hidden'); $('btnShot').classList.add('hidden');
+    $('formMsg').classList.add('hidden');
+    if (!$('units').value) $('units').focus();
+  } catch (err) { showErr('Could not read that photo. Please take it again.'); }
+});
+// resize the photo on the phone (max 1280 px) so it uploads fast even on slow internet
+async function shrink(file) {
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+  const max = 1280, s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(img.src);
+  let q = .78, out = c.toDataURL('image/jpeg', q);
+  while (out.length > 1.6e6 && q > .4) { q -= .12; out = c.toDataURL('image/jpeg', q); }
+  return out;
+}
+function showErr(t) { const m = $('formMsg'); m.textContent = t; m.classList.remove('hidden'); m.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+
+$('btnSave').addEventListener('click', async () => {
+  const car = normCar($('car').value).trim(), u = units();
+  if (!/^[A-Z0-9][A-Z0-9 -]{1,14}$/.test(car)) return showErr('Enter the car number.');
+  if (!photoData) return showErr('Take a photo of the meter reading.');
+  if (!(u > 0 && u <= 1000)) return showErr('Enter the units charged (kWh).');
+  if (!connected()) return showErr('Enter the station key first (see the top of this page).');
+  $('formMsg').classList.add('hidden');
+  const staff = $('staff').value.trim(); store.set('staff', staff);
+  const entry = { id: crypto.randomUUID(), car, units: u, payment, phone: $('phone').value.trim(), staff, note: $('note').value.trim(), photo: photoData, takenAt: Date.now() };
+  const btn = $('btnSave'); btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await obPut(entry);   // kept on the phone first, removed once the Sheet has it
+    try {
+      const r = await api('POST', null, entry);
+      if (r.ok) { await obDel(entry.id); receipt(r.row, false); }
+      else { await obDel(entry.id); showErr(r.error || 'The Sheet refused this bill.'); }
+    } catch (e) {
+      receipt({ bill: 'Pending', date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }), time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        car, units: u, rate: config.rate, amount: Math.round(u * (config.rate || 0)), payment, phone: entry.phone, staff }, true);
+    }
+  } catch (e) { showErr('Could not save on this phone: ' + (e.message || e)); }
+  finally { btn.disabled = false; btn.textContent = 'Save bill'; updatePending(); }
+});
+
+let lastRow = null;
+function receipt(r, pending) {
+  lastRow = r;
+  $('rTick').classList.toggle('wait', pending);
+  $('rTitle').textContent = pending ? 'Saved on this phone' : 'Bill saved';
+  $('rSub').textContent = pending ? 'No internet. It will upload to the Sheet automatically.' : `${r.bill} · ${r.date}, ${r.time}`;
+  $('rAmt').textContent = money(r.amount);
+  const lines = [['Car number', r.car], ['Units', fmtUnits(r.units) + ' kWh'], ['Rate', money(r.rate) + ' / kWh'], ['Payment', r.payment]];
+  if (r.staff) lines.push(['Staff', r.staff]);
+  if (pending) lines.unshift(['Time', `${r.date}, ${r.time}`]);
+  $('rLines').replaceChildren(...lines.map(([a, b]) => h('div', null, h('span', { text: a }), h('b', { text: String(b) }))));
+  $('veil').classList.remove('hidden');
+  $('btnNext').focus();
+}
+$('btnWa').addEventListener('click', () => {
+  const r = lastRow; if (!r) return;
+  const text = `${config.station || 'EV Charging Station'}\nCharging receipt${r.bill && r.bill !== 'Pending' ? ' ' + r.bill : ''}\n` +
+    `Date: ${r.date}, ${r.time}\nCar: ${r.car}\nUnits: ${fmtUnits(r.units)} kWh\nRate: ${money(r.rate)}/kWh\nAmount: ${money(r.amount)}\nPaid by: ${r.payment}\nThank you!`;
+  let ph = String(r.phone || '').replace(/[^0-9]/g, '');
+  if (/^03\d{9}$/.test(ph)) ph = '92' + ph.slice(1);
+  const url = (ph.length >= 11 ? `https://wa.me/${ph}` : 'https://wa.me/') + '?text=' + encodeURIComponent(text);
+  window.open(url, '_blank', 'noopener');
+});
+$('btnNext').addEventListener('click', () => {
+  $('veil').classList.add('hidden');
+  $('car').value = ''; $('units').value = ''; $('phone').value = ''; $('note').value = ''; photoData = '';
+  $('preview').classList.add('hidden'); $('btnShot').classList.remove('hidden'); $('previewImg').removeAttribute('src');
+  payment = 'Cash'; [...$('paySeg').children].forEach((x, i) => x.classList.toggle('on', i === 0));
+  updateAmount(); window.scrollTo({ top: 0, behavior: 'smooth' }); $('car').focus();
+});
+
+/* ---------- lists ---------- */
+function itemEl(r, opts = {}) {
+  const pay = h('span', { class: 'chip' + (r.payment === 'Cash' ? ' cash' : ''), text: r.payment });
+  const right = h('div', { class: 'right' }, opts.pending ? h('span', { class: 'chip wait', text: 'Waiting' }) : pay);
+  const meta = h('div', { class: 'meta', text: `${opts.withDate ? r.date + ' · ' : ''}${r.time} · ${fmtUnits(r.units)} kWh${r.bill && !opts.pending ? ' · ' + r.bill : ''}` });
+  const link = r.photo ? h('a', { href: r.photo, target: '_blank', rel: 'noopener', text: 'Meter photo' }) : null;
+  return h('div', { class: 'item' }, h('div', { class: 'car', text: r.car }), h('div', { class: 'amt', text: money(r.amount) }), meta, link ? h('div', { class: 'right' }, link, right) : right);
+}
+async function loadToday() {
+  const btn = $('btnRefresh'); btn.classList.add('spin');
+  const list = $('todayList');
+  const pend = ((await obAll().catch(() => [])) || []).map(e => ({ car: e.car, units: e.units, amount: Math.round(e.units * (config.rate || 0)), payment: e.payment, time: new Date(e.takenAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) }));
+  try {
+    const r = await api('GET', { action: 'today' });
+    if (!r.ok) throw new Error(r.error);
+    if (r.config) { config = r.config; store.set('config', config); showConfig(); }
+    const rows = r.rows || [];
+    const all = rows.concat(pend);
+    const total = all.reduce((s, x) => s + x.amount, 0), cash = all.filter(x => x.payment === 'Cash').reduce((s, x) => s + x.amount, 0);
+    $('sTotal').textContent = money(total); $('sCars').textContent = all.length; $('sUnits').textContent = fmtUnits(all.reduce((s, x) => s + x.units, 0));
+    $('sAvg').textContent = money(all.length ? total / all.length : 0); $('sCash').textContent = 'Cash: ' + money(cash); $('sOnline').textContent = 'Online: ' + money(total - cash);
+    list.replaceChildren(...pend.map(x => itemEl(x, { pending: true })), ...rows.map(x => itemEl(x)));
+    if (!all.length) list.replaceChildren(h('div', { class: 'empty', text: 'No bills yet today.' }));
+  } catch (e) {
+    list.replaceChildren(...pend.map(x => itemEl(x, { pending: true })), h('div', { class: 'empty', text: e.setup ? 'Connect the Google Sheet first.' : 'Could not load from the Sheet. Check the internet and tap refresh.' }));
+  } finally { btn.classList.remove('spin'); updatePending(); }
+}
+$('btnRefresh').addEventListener('click', () => { flush().then(loadToday); });
+async function doSearch() {
+  const q = normCar($('q').value).trim(); const list = $('searchList');
+  if (q.replace(/[^A-Z0-9]/g, '').length < 2) { list.replaceChildren(h('div', { class: 'empty', text: 'Type at least 2 letters or numbers of the car number.' })); return; }
+  list.replaceChildren(h('div', { class: 'empty', text: 'Searching…' }));
+  try {
+    const r = await api('GET', { action: 'search', car: q });
+    if (!r.ok) throw new Error(r.error);
+    const rows = r.rows || [];
+    if (!rows.length) { list.replaceChildren(h('div', { class: 'empty', text: 'No bills found for ' + q + '.' })); return; }
+    const tot = rows.reduce((s, x) => s + x.amount, 0);
+    list.replaceChildren(h('div', { class: 'meta', text: `${rows.length} bill${rows.length > 1 ? 's' : ''} · ${money(tot)} in total` }), ...rows.map(x => itemEl(x, { withDate: true })));
+  } catch (e) { list.replaceChildren(h('div', { class: 'empty', text: 'Could not search right now. Check the internet.' })); }
+}
+$('btnSearch').addEventListener('click', doSearch);
+$('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+$('q').addEventListener('input', (e) => { const v = normCar(e.target.value); if (v !== e.target.value) e.target.value = v; });
+
+/* ---------- tabs ---------- */
+document.querySelector('nav').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  for (const t of ['new', 'today', 'search']) $('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab);
+  if (b.dataset.tab === 'today') loadToday();
+  if (b.dataset.tab === 'search') $('q').focus();
+  window.scrollTo({ top: 0 });
+});
+
+/* ---------- first-time connect ---------- */
+function checkSetup() { $('setupCard').classList.toggle('hidden', connected()); }
+$('btnSaveUrl').addEventListener('click', async () => {
+  const k = $('keyInput').value.trim(), m = $('setupMsg');
+  if (k.length < 8) { m.textContent = 'Enter the full station key.'; m.classList.remove('hidden'); return; }
+  store.set('key', k); m.classList.add('hidden');
+  try {
+    const r = await api('GET', { action: 'config' });
+    if (!r.ok) throw new Error(r.error === 'Not allowed' ? 'That key is not correct.' : (r.error || 'refused'));
+    $('keyInput').value = ''; config = r.config; store.set('config', config); showConfig(); checkSetup(); toast('Connected to ' + config.station); flush();
+  } catch (e) { store.set('key', ''); m.textContent = e.network ? 'Could not reach the Sheet. Check the internet and try again.' : e.message; m.classList.remove('hidden'); }
+});
+
+setNet(); showConfig(); checkSetup(); updatePending();
+if (connected()) { loadConfig(); flush(); }
+</script>
+</body>
+</html>
