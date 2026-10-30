@@ -233,7 +233,7 @@ function showLogin(err) {
 }
 async function login() {
   const p = $('pinIn').value.trim();
-  if (p.length < 6) return showLogin('Enter your full owner PIN.');
+  if (p.length < 4) return showLogin('Enter your owner PIN.');
   sess.set('pin', p);
   const btn = $('btnLogin'); btn.disabled = true; btn.textContent = 'Opening…';
   const ok = await load();
